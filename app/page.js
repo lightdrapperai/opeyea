@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 
 import { useMemo, useState } from "react";
@@ -94,10 +95,25 @@ export default function Home() {
   const [menu, setMenu] = useState(false);
 
   const suggestions = useMemo(() => {
-    const q = input.trim().toLowerCase();
-    if (!q) return [];
-    return errors.filter(([wrong]) => wrong.toLowerCase().includes(q)).slice(0, 3);
-  }, [input]);
+  const q = input
+    .trim()
+    .toLowerCase()
+    .replace(/[“”"'.!,?]/g, "")
+    .replace(/\s+/g, " ");
+
+  if (!q) return [];
+
+  return errors
+    .filter((item) => {
+      const wrong = item[0]
+        .toLowerCase()
+        .replace(/[“”"'.!,?]/g, "")
+        .replace(/\s+/g, " ");
+
+      return wrong.includes(q) || q.includes(wrong);
+    })
+    .slice(0, 3);
+}, [input]);
 
   function correctEnglish() {
   const normalize = (text = "") =>
@@ -194,7 +210,7 @@ export default function Home() {
           <div className="inputWrap">
             <textarea
               value={input}
-              onChange={(e) => { setInput(e.target.value); setResult(null); }}
+              onChange={(event) => { setInput(event.target.value); setResult(null); }}
               placeholder='Example: “Off the light.”'
               rows="4"
             />
@@ -261,7 +277,7 @@ export default function Home() {
             school-based activities.
           </p>
         </div>
-        <form className="consentForm" onSubmit={(e) => { e.preventDefault(); setConsentSent(true); }}>
+      <form className="consentForm" onSubmit={(event) => { event.preventDefault(); setConsentSent(true); }}>
           <input required placeholder="Student's full name" />
           <div className="two"><input required placeholder="Class" /><input required placeholder="School" /></div>
           <input required placeholder="Parent/Guardian name" />
@@ -306,4 +322,4 @@ export default function Home() {
       </footer>
     </main>
   );
-    }
+}

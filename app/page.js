@@ -201,10 +201,24 @@ export default function Home() {
             {suggestions.length > 0 && (
               <div className="suggestions">
                 {suggestions.map(([wrong, correct]) => (
-                  <button key={wrong} onClick={() => setInput(wrong)}>
-                    <b>{wrong}</b><span>→ {correct}</span>
-                  </button>
-                ))}
+  <button
+    key={wrong}
+    className="suggestionCard"
+    onClick={() => {
+      setInput(wrong);
+      setResult({
+        wrong,
+        correct,
+        note: errors.find(([item]) => item === wrong)?.[2] || ""
+      });
+    }}
+  >
+    <span className="suggestionLabel">SUGGESTED CORRECTION</span>
+    <span className="suggestionWrong">❌ {wrong}</span>
+    <span className="suggestionArrow">↓</span>
+    <span className="suggestionCorrect">✓ {correct}</span>
+  </button>
+))}
               </div>
             )}
           </div>
@@ -292,4 +306,4 @@ export default function Home() {
       </footer>
     </main>
   );
-   }
+    }

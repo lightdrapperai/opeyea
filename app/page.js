@@ -100,13 +100,30 @@ export default function Home() {
   }, [input]);
 
   function correctEnglish() {
-    const q = input.trim().toLowerCase();
-    const found = errors.find(([wrong]) => wrong.toLowerCase() === q);
-    setResult(found ? { wrong: found[0], correct: found[1], note: found[2] } : {
-      wrong: input.trim() || "Your expression",
-      correct: "We are building this correction library.",
-      note: "This first MVP contains starter examples. The full OPEYEA correction database can be expanded as the project grows."
-    });
+  const normalize = (text = "") =>
+    text
+      .trim()
+      .toLowerCase()
+      .replace(/[“”"'.!,?]/g, "")
+      .replace(/\s+/g, " ");
+
+  const q = normalize(input);
+
+  const found = errors.find(([wrong]) => normalize(wrong) === q);
+
+  setResult(
+    found
+      ? {
+          wrong: found[0],
+          correct: found[1],
+          note: found[2],
+        }
+      : {
+          wrong: input.trim() || "Your expression",
+          correct: "No correction found yet.",
+          note: "This expression is not yet in the OPEYEA correction library. Try another expression or check back as the library grows.",
+        }
+  );
   }
 
   return (
@@ -276,4 +293,3 @@ export default function Home() {
     </main>
   );
    }
-  

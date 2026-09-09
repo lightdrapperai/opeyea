@@ -293,7 +293,7 @@ const [consentLoading, setConsentLoading] = useState(false);
     const formElement = event.currentTarget;
 const form = new FormData(formElement);
 
-    const form = new FormData(event.currentTarget);
+    
 
     const { error } = await supabase.from("parent_consents").insert([
       {

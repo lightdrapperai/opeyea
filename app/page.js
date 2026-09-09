@@ -2,7 +2,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+);
 const errors = [
   ["I am coming", "I am on my way.", "When you mean you are going somewhere and will arrive shortly, “I am on my way” is the natural expression."],
   ["Off the light", "Turn off the light.", "Use “turn off” when switching a light off."],
@@ -91,7 +96,9 @@ const errors = [
 export default function Home() {
   const [input, setInput] = useState("");
   const [result, setResult] = useState(null);
-  const [consentSent, setConsentSent] = useState(false);
+const [consentSent, setConsentSent] = useState(false);
+const [consentError, setConsentError] = useState("");
+const [consentLoading, setConsentLoading] = useState(false);
   const [menu, setMenu] = useState(false);
 
   const suggestions = useMemo(() => {
@@ -277,14 +284,65 @@ export default function Home() {
             school-based activities.
           </p>
         </div>
-      <form className="consentForm" onSubmit={(event) => { event.preventDefault(); setConsentSent(true); }}>
-          <input required placeholder="Student's full name" />
-          <div className="two"><input required placeholder="Class" /><input required placeholder="School" /></div>
-          <input required placeholder="Parent/Guardian name" />
-          <input required type="tel" placeholder="Parent/Guardian phone number" />
+<form
+  className="consentForm"
+  onSubmit={async (event) => {
+    event.preventDefault();
+    setConsentError("");
+    setConsentLoading(true);
+    const formElement = event.currentTarget;
+const form = new FormData(formElement);
+
+    const form = new FormData(event.currentTarget);
+
+    const { error } = await supabase.from("parent_consents").insert([
+      {
+        student_name: form.get("student_name"),
+        student_class: form.get("student_class"),
+        school: form.get("school"),
+        parent_guardian_name: form.get("parent_guardian_name"),
+        parent_guardian_phone: form.get("parent_guardian_phone"),
+        consent_given: true,
+      },
+    ]);
+
+    setConsentLoading(false);
+
+    if (error) {
+      setConsentError("We couldn't submit the consent form. Please try again.");
+      return;
+    }
+
+    setConsentSent(true);
+    formElement.reset();
+  }}
+>
+<input
+  required
+  name="student_name"
+  placeholder="Student's full name"
+/>
+<div className="two">
+  <input required name="student_class" placeholder="Class" />
+<input required name="school" placeholder="School" />
+</div>
+          <input
+  required
+  name="parent_guardian_name"
+  placeholder="Parent/Guardian name"
+/>
+          <input
+  required
+  name="parent_guardian_phone"
+  type="tel"
+  placeholder="Parent/Guardian phone number"
+/>
           <label className="check"><input required type="checkbox" /> I give permission for my child to participate in English Clinic and OPEYEA activities.</label>
-          <button className="btn primary" type="submit">{consentSent ? "Consent Recorded ✓" : "Give Consent"}</button>
-          {consentSent && <p className="success">Thank you. This demo form is ready to be connected to a secure database and notification system.</p>}
+          <button className="btn primary" type="submit" disabled={consentLoading}>
+  {consentLoading ? "Submitting..." : consentSent ? "Consent Recorded ✓" : "Give Consent"}
+</button>
+          {consentError && <p className="error">{consentError}</p>}
+{consentSent && <p className="success">Thank you. Your consent has been submitted successfully.</p>}
         </form>
       </section>
 
@@ -322,4 +380,4 @@ export default function Home() {
       </footer>
     </main>
   );
-}
+  }

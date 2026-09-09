@@ -34,7 +34,7 @@ export default function ResetPasswordPage() {
     setLoading(true);
 
     const { error } = await supabase.auth.updateUser({
-      password,
+      password: password,
     });
 
     setLoading(false);
@@ -161,4 +161,47 @@ const styles = {
   },
 
   input: {
-    width:
+    width: "100%",
+    boxSizing: "border-box",
+    padding: "13px",
+    border: "1px solid #bcccdc",
+    borderRadius: "9px",
+    fontSize: "16px",
+  },
+
+  button: {
+    width: "100%",
+    marginTop: "22px",
+    border: "none",
+    background: "#0b5ed7",
+    color: "#ffffff",
+    padding: "14px",
+    borderRadius: "9px",
+    fontSize: "16px",
+    fontWeight: "700",
+    cursor: "pointer",
+  },
+
+  error: {
+    background: "#fff5f5",
+    color: "#c92a2a",
+    padding: "12px",
+    borderRadius: "9px",
+    marginTop: "16px",
+  },
+
+  success: {
+    background: "#f0fff4",
+    color: "#237804",
+    padding: "12px",
+    borderRadius: "9px",
+    marginTop: "16px",
+  },
+
+  footer: {
+    textAlign: "center",
+    color: "#829ab1",
+    marginTop: "25px",
+    fontSize: "13px",
+  },
+};

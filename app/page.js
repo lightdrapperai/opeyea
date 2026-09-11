@@ -348,7 +348,7 @@ const form = new FormData(formElement);
 {consentSent && <p className="success">Thank you. Your consent has been submitted successfully.</p>}
         </form>
       </section>
-  <section id="school-registration" className="section">
+<section id="school-registration" className="section">
   <div className="consentIntro">
     <p className="eyebrow">FOR SCHOOLS</p>
 
@@ -366,31 +366,35 @@ const form = new FormData(formElement);
       event.preventDefault();
 
       setSchoolError("");
+      setSchoolSent(false);
       setSchoolLoading(true);
 
       const formElement = event.currentTarget;
       const form = new FormData(formElement);
 
+      const schoolData = {
+        school_name: form.get("school_name"),
+        school_address: form.get("school_address"),
+        principal_name: form.get("principal_name"),
+        contact_person: form.get("contact_person"),
+        phone: form.get("phone"),
+        email: form.get("email") || null,
+        classes_interested: form.get("classes_interested"),
+        student_count: form.get("student_count") || null,
+      };
+
       const { error } = await supabase
         .from("school_registrations")
-        .insert([
-          {
-            school_name: form.get("school_name"),
-            school_address: form.get("school_address"),
-            principal_name: form.get("principal_name"),
-            contact_person: form.get("contact_person"),
-            phone: form.get("phone"),
-            email: form.get("email"),
-            classes_interested: form.get("classes_interested"),
-            student_count: form.get("student_count"),
-          },
-        ]);
+        .insert([schoolData]);
 
       setSchoolLoading(false);
 
       if (error) {
-  setSchoolError(error.message);
-  return;
+        console.error("School registration error:", error);
+        setSchoolError(
+          "We couldn't submit the school registration. Please try again."
+        );
+        return;
       }
 
       setSchoolSent(true);
@@ -454,7 +458,7 @@ const form = new FormData(formElement);
     </button>
 
     {schoolError && (
-      <p className="formError">{consentError}</p>
+      <p className="formError">{schoolError}</p>
     )}
 
     {schoolSent && (
@@ -464,7 +468,6 @@ const form = new FormData(formElement);
     )}
   </form>
 </section>
-
       <section id="shirt" className="section shirt">
         <div className="shirtMock">
           <div className="tee">

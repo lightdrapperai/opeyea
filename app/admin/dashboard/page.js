@@ -24,6 +24,7 @@ export default function DashboardPage() {
     setError("");
 
     console.log("Dashboard: starting load");
+    setError("DEBUG: Dashboard started loading...");
     const {
       data: { user },
     } = await supabase.auth.getUser();

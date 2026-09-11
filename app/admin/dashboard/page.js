@@ -10,6 +10,7 @@ const supabase = createClient(
 
 export default function DashboardPage() {
   const [consents, setConsents] = useState([]);
+  const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [userEmail, setUserEmail] = useState("");
@@ -33,18 +34,38 @@ export default function DashboardPage() {
 
     setUserEmail(user.email || "");
 
-    const { data, error } = await supabase
+    const {
+      data: consentData,
+      error: consentError,
+    } = await supabase
       .from("parent_consents")
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (error) {
-      setError("Unable to load consent records.");
+    if (consentError) {
+      console.error("Parent consent error:", consentError);
+      setError(consentError.message);
       setLoading(false);
       return;
     }
 
-    setConsents(data || []);
+    const {
+      data: schoolData,
+      error: schoolError,
+    } = await supabase
+      .from("school_registrations")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (schoolError) {
+      console.error("School registration error:", schoolError);
+      setError(schoolError.message);
+      setLoading(false);
+      return;
+    }
+
+    setConsents(consentData || []);
+    setSchools(schoolData || []);
     setLoading(false);
   }
 
@@ -58,13 +79,20 @@ export default function DashboardPage() {
       <header style={styles.header}>
         <div>
           <p style={styles.eyebrow}>OPEYEA</p>
-          <h1 style={styles.title}>Admin Dashboard</h1>
+
+          <h1 style={styles.title}>
+            Admin Dashboard
+          </h1>
+
           <p style={styles.subtitle}>
-            Parent and guardian consent records
+            Manage parent consent and school registration records
           </p>
         </div>
 
-        <button onClick={handleLogout} style={styles.logout}>
+        <button
+          onClick={handleLogout}
+          style={styles.logout}
+        >
           Log Out
         </button>
       </header>
@@ -74,81 +102,198 @@ export default function DashboardPage() {
         <span>{userEmail}</span>
       </section>
 
+      {/* PARENT CONSENT RECORDS */}
+
       <section style={styles.card}>
         <div style={styles.cardHeader}>
           <div>
-            <h2 style={styles.cardTitle}>Consent Records</h2>
+            <h2 style={styles.cardTitle}>
+              Parent Consent Records
+            </h2>
+
             <p style={styles.cardSubtitle}>
-              Total submissions: <strong>{consents.length}</strong>
+              Total submissions:{" "}
+              <strong>{consents.length}</strong>
             </p>
           </div>
 
-          <button onClick={loadDashboard} style={styles.refresh}>
+          <button
+            onClick={loadDashboard}
+            style={styles.refresh}
+          >
             Refresh
           </button>
         </div>
 
         {loading && (
-          <p style={styles.message}>Loading consent records...</p>
-        )}
-
-        {error && (
-          <p style={styles.error}>{error}</p>
-        )}
-
-        {!loading && !error && consents.length === 0 && (
           <p style={styles.message}>
-            No parent consent records have been submitted yet.
+            Loading records...
           </p>
         )}
 
-        {!loading && !error && consents.length > 0 && (
-          <div style={styles.tableWrap}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Student</th>
-                  <th style={styles.th}>Class</th>
-                  <th style={styles.th}>School</th>
-                  <th style={styles.th}>Parent/Guardian</th>
-                  <th style={styles.th}>Phone</th>
-                  <th style={styles.th}>Date</th>
-                </tr>
-              </thead>
+        {!loading &&
+          !error &&
+          consents.length === 0 && (
+            <p style={styles.message}>
+              No parent consent records have been submitted yet.
+            </p>
+          )}
 
-              <tbody>
-                {consents.map((consent) => (
-                  <tr key={consent.id}>
-                    <td style={styles.td}>
-                      {consent.student_name}
-                    </td>
-
-                    <td style={styles.td}>
-                      {consent.student_class}
-                    </td>
-
-                    <td style={styles.td}>
-                      {consent.school}
-                    </td>
-
-                    <td style={styles.td}>
-                      {consent.parent_guardian_name}
-                    </td>
-
-                    <td style={styles.td}>
-                      {consent.parent_guardian_phone}
-                    </td>
-
-                    <td style={styles.td}>
-                      {new Date(consent.created_at).toLocaleDateString()}
-                    </td>
+        {!loading &&
+          !error &&
+          consents.length > 0 && (
+            <div style={styles.tableWrap}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>Student</th>
+                    <th style={styles.th}>Class</th>
+                    <th style={styles.th}>School</th>
+                    <th style={styles.th}>
+                      Parent/Guardian
+                    </th>
+                    <th style={styles.th}>Phone</th>
+                    <th style={styles.th}>Date</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+
+                <tbody>
+                  {consents.map((consent) => (
+                    <tr key={consent.id}>
+                      <td style={styles.td}>
+                        {consent.student_name}
+                      </td>
+
+                      <td style={styles.td}>
+                        {consent.student_class}
+                      </td>
+
+                      <td style={styles.td}>
+                        {consent.school}
+                      </td>
+
+                      <td style={styles.td}>
+                        {consent.parent_guardian_name}
+                      </td>
+
+                      <td style={styles.td}>
+                        {consent.parent_guardian_phone}
+                      </td>
+
+                      <td style={styles.td}>
+                        {new Date(
+                          consent.created_at
+                        ).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
       </section>
+
+      {/* SCHOOL REGISTRATIONS */}
+
+      <section style={styles.card}>
+        <div style={styles.cardHeader}>
+          <div>
+            <h2 style={styles.cardTitle}>
+              School Registrations
+            </h2>
+
+            <p style={styles.cardSubtitle}>
+              Total registrations:{" "}
+              <strong>{schools.length}</strong>
+            </p>
+          </div>
+        </div>
+
+        {!loading &&
+          !error &&
+          schools.length === 0 && (
+            <p style={styles.message}>
+              No school registrations have been submitted yet.
+            </p>
+          )}
+
+        {!loading &&
+          !error &&
+          schools.length > 0 && (
+            <div style={styles.tableWrap}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>School</th>
+                    <th style={styles.th}>Address</th>
+                    <th style={styles.th}>
+                      Principal / Head
+                    </th>
+                    <th style={styles.th}>
+                      Contact Person
+                    </th>
+                    <th style={styles.th}>Phone</th>
+                    <th style={styles.th}>Email</th>
+                    <th style={styles.th}>Classes</th>
+                    <th style={styles.th}>Students</th>
+                    <th style={styles.th}>Date</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {schools.map((school) => (
+                    <tr key={school.id}>
+                      <td style={styles.td}>
+                        {school.school_name}
+                      </td>
+
+                      <td style={styles.td}>
+                        {school.school_address}
+                      </td>
+
+                      <td style={styles.td}>
+                        {school.principal_name}
+                      </td>
+
+                      <td style={styles.td}>
+                        {school.contact_person}
+                      </td>
+
+                      <td style={styles.td}>
+                        {school.phone}
+                      </td>
+
+                      <td style={styles.td}>
+                        {school.email || "Not provided"}
+                      </td>
+
+                      <td style={styles.td}>
+                        {school.classes_interested}
+                      </td>
+
+                      <td style={styles.td}>
+                        {school.student_count ||
+                          "Not provided"}
+                      </td>
+
+                      <td style={styles.td}>
+                        {new Date(
+                          school.created_at
+                        ).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+      </section>
+
+      {error && (
+        <p style={styles.error}>
+          {error}
+        </p>
+      )}
     </main>
   );
 }
@@ -214,7 +359,7 @@ const styles = {
 
   card: {
     maxWidth: "1200px",
-    margin: "0 auto",
+    margin: "0 auto 25px",
     background: "#fff",
     borderRadius: "16px",
     padding: "22px",
@@ -257,7 +402,7 @@ const styles = {
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    minWidth: "900px",
+    minWidth: "1100px",
   },
 
   th: {
@@ -281,6 +426,8 @@ const styles = {
   },
 
   error: {
+    maxWidth: "1200px",
+    margin: "0 auto 20px",
     background: "#fff5f5",
     color: "#c92a2a",
     padding: "14px",

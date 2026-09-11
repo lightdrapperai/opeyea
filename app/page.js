@@ -389,10 +389,8 @@ const form = new FormData(formElement);
       setSchoolLoading(false);
 
       if (error) {
-        setSchoolError(
-          "We couldn't submit the school registration. Please try again."
-        );
-        return;
+  setSchoolError(error.message);
+  return;
       }
 
       setSchoolSent(true);

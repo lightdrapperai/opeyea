@@ -100,6 +100,9 @@ const [consentSent, setConsentSent] = useState(false);
 const [consentError, setConsentError] = useState("");
 const [consentLoading, setConsentLoading] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [schoolSent, setSchoolSent] = useState(false);
+const [schoolError, setSchoolError] = useState("");
+const [schoolLoading, setSchoolLoading] = useState(false);
 
   const suggestions = useMemo(() => {
   const q = input
@@ -345,6 +348,124 @@ const form = new FormData(formElement);
 {consentSent && <p className="success">Thank you. Your consent has been submitted successfully.</p>}
         </form>
       </section>
+  <section id="school-registration" className="section">
+  <div className="consentIntro">
+    <p className="eyebrow">FOR SCHOOLS</p>
+
+    <h2>Partner With OPEYEA</h2>
+
+    <p>
+      Is your school interested in having English Clinic and OPEYEA activities
+      for students? Register your school and our team will contact you.
+    </p>
+  </div>
+
+  <form
+    className="consentForm"
+    onSubmit={async (event) => {
+      event.preventDefault();
+
+      setSchoolError("");
+      setSchoolLoading(true);
+
+      const formElement = event.currentTarget;
+      const form = new FormData(formElement);
+
+      const { error } = await supabase
+        .from("school_registrations")
+        .insert([
+          {
+            school_name: form.get("school_name"),
+            school_address: form.get("school_address"),
+            principal_name: form.get("principal_name"),
+            contact_person: form.get("contact_person"),
+            phone: form.get("phone"),
+            email: form.get("email"),
+            classes_interested: form.get("classes_interested"),
+            student_count: form.get("student_count"),
+          },
+        ]);
+
+      setSchoolLoading(false);
+
+      if (error) {
+        setSchoolError(
+          "We couldn't submit the school registration. Please try again."
+        );
+        return;
+      }
+
+      setSchoolSent(true);
+      formElement.reset();
+    }}
+  >
+    <input
+      required
+      name="school_name"
+      placeholder="School name"
+    />
+
+    <input
+      required
+      name="school_address"
+      placeholder="School address"
+    />
+
+    <input
+      required
+      name="principal_name"
+      placeholder="Principal / Head Teacher's name"
+    />
+
+    <input
+      required
+      name="contact_person"
+      placeholder="Contact person's name"
+    />
+
+    <input
+      required
+      name="phone"
+      type="tel"
+      placeholder="Contact phone number"
+    />
+
+    <input
+      name="email"
+      type="email"
+      placeholder="School email address (optional)"
+    />
+
+    <input
+      required
+      name="classes_interested"
+      placeholder="Classes interested (e.g. JSS 1–3)"
+    />
+
+    <input
+      name="student_count"
+      placeholder="Approximate number of students (optional)"
+    />
+
+    <button
+      className="btn primary"
+      type="submit"
+      disabled={schoolLoading}
+    >
+      {schoolLoading ? "Submitting..." : "Register Your School"}
+    </button>
+
+    {schoolError && (
+      <p className="formError">{consentError}</p>
+    )}
+
+    {schoolSent && (
+      <p className="formSuccess">
+        Thank you. Your school registration has been submitted successfully.
+      </p>
+    )}
+  </form>
+</section>
 
       <section id="shirt" className="section shirt">
         <div className="shirtMock">

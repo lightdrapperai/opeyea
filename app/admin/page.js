@@ -12,11 +12,15 @@ export default function AdminPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   async function handleLogin(event) {
     event.preventDefault();
+
     setError("");
+    setMessage("");
     setLoading(true);
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -32,6 +36,39 @@ export default function AdminPage() {
     }
 
     window.location.href = "/admin/dashboard";
+  }
+
+  async function handleForgotPassword() {
+    setError("");
+    setMessage("");
+
+    if (!email) {
+      setError("Enter your admin email address first.");
+      return;
+    }
+
+    setResetLoading(true);
+
+    const redirectTo =
+      `${window.location.origin}/admin/reset-password`;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo,
+      }
+    );
+
+    setResetLoading(false);
+
+    if (error) {
+      setError(error.message);
+      return;
+    }
+
+    setMessage(
+      "Password recovery email sent. Check your Gmail inbox."
+    );
   }
 
   return (
@@ -68,7 +105,17 @@ export default function AdminPage() {
             style={styles.input}
           />
 
-          {error && <p style={styles.error}>{error}</p>}
+          {error && (
+            <p style={styles.error}>
+              {error}
+            </p>
+          )}
+
+          {message && (
+            <p style={styles.success}>
+              {message}
+            </p>
+          )}
 
           <button
             type="submit"
@@ -78,6 +125,17 @@ export default function AdminPage() {
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
+
+        <button
+          type="button"
+          onClick={handleForgotPassword}
+          disabled={resetLoading}
+          style={styles.forgot}
+        >
+          {resetLoading
+            ? "Sending recovery email..."
+            : "Forgot Password?"}
+        </button>
 
         <p style={styles.footer}>
           OPEYEA • English Clinic
@@ -165,9 +223,30 @@ const styles = {
     cursor: "pointer",
   },
 
+  forgot: {
+    display: "block",
+    width: "100%",
+    marginTop: "15px",
+    padding: "10px",
+    border: "none",
+    background: "transparent",
+    color: "#0b5ed7",
+    fontSize: "14px",
+    fontWeight: "700",
+    cursor: "pointer",
+  },
+
   error: {
     color: "#c92a2a",
     background: "#fff5f5",
+    padding: "10px",
+    borderRadius: "8px",
+    fontSize: "14px",
+  },
+
+  success: {
+    color: "#237804",
+    background: "#f0fff4",
     padding: "10px",
     borderRadius: "8px",
     fontSize: "14px",

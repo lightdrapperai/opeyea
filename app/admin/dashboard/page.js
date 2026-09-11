@@ -23,9 +23,11 @@ export default function DashboardPage() {
     setLoading(true);
     setError("");
 
+    console.log("Dashboard: starting load");
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    console.log("Dashboard: user check complete", user);
 
     if (!user) {
       window.location.href = "/admin";
@@ -34,6 +36,8 @@ export default function DashboardPage() {
 
     setUserEmail(user.email || "");
 
+console.log("Dashboard: loading parent consents");
+    
     const {
       data: consentData,
       error: consentError,
@@ -42,6 +46,11 @@ export default function DashboardPage() {
       .select("*")
       .order("created_at", { ascending: false });
 
+    console.log("Dashboard: parent consents request finished", {
+  consentData,
+  consentError,
+});
+
     if (consentError) {
       console.error("Parent consent error:", consentError);
       setError(consentError.message);
@@ -49,6 +58,7 @@ export default function DashboardPage() {
       return;
     }
 
+    console.log("Dashboard: loading school registrations");
     const {
       data: schoolData,
       error: schoolError,
@@ -56,6 +66,10 @@ export default function DashboardPage() {
       .from("school_registrations")
       .select("*")
       .order("created_at", { ascending: false });
+    console.log("Dashboard: school registrations request finished", {
+  schoolData,
+  schoolError,
+});
 
     if (schoolError) {
       console.error("School registration error:", schoolError);

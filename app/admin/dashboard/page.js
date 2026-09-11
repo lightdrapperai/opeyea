@@ -37,16 +37,14 @@ export default function DashboardPage() {
     setUserEmail(user.email || "");
 
 console.log("Dashboard: loading parent consents");
-    
-    const {
+     const {
       data: consentData,
       error: consentError,
     } = await supabase
       .from("parent_consents")
       .select("*")
       .order("created_at", { ascending: false });
-
-    console.log("Dashboard: parent consents request finished", {
+console.log("Dashboard: parent consents request finished", {
   consentData,
   consentError,
 });

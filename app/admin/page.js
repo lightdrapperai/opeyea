@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -8,139 +8,214 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 );
 
-export default function AdminPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [resetLoading, setResetLoading] = useState(false);
+export default function DashboardPage() {
+  const [consents, setConsents] = useState([]);
+  const [schools, setSchools] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [userEmail, setUserEmail] = useState("");
 
-  async function handleLogin(event) {
-    event.preventDefault();
+  useEffect(() => {
+    loadDashboard();
+  }, []);
 
-    setError("");
-    setMessage("");
+  async function loadDashboard() {
     setLoading(true);
+    setError("");
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    setLoading(false);
-
-    if (error) {
-      setError("Invalid email or password. Please try again.");
+    if (!user) {
+      window.location.href = "/admin";
       return;
     }
 
-    window.location.href = "/admin/dashboard";
+    setUserEmail(user.email || "");
+
+    const { data: consentData, error: consentError } = await supabase
+      .from("parent_consents")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (consentError) {
+      setError("Unable to load parent consent records.");
+      setLoading(false);
+      return;
+    }
+
+    const { data: schoolData, error: schoolError } = await supabase
+      .from("school_registrations")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (schoolError) {
+      setError("Unable to load school registration records.");
+      setLoading(false);
+      return;
+    }
+
+    setConsents(consentData || []);
+    setSchools(schoolData || []);
+    setLoading(false);
   }
 
-  async function handleForgotPassword() {
-    setError("");
-    setMessage("");
-
-    if (!email) {
-      setError("Enter your admin email address first.");
-      return;
-    }
-
-    setResetLoading(true);
-
-    const redirectTo =
-      `${window.location.origin}/admin/reset-password`;
-
-    const { error } = await supabase.auth.resetPasswordForEmail(
-      email,
-      {
-        redirectTo,
-      }
-    );
-
-    setResetLoading(false);
-
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
-    setMessage(
-      "Password recovery email sent. Check your Gmail inbox."
-    );
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    window.location.href = "/admin";
   }
 
   return (
     <main style={styles.page}>
-      <section style={styles.card}>
-        <div style={styles.logo}>O</div>
+      <header style={styles.header}>
+        <div>
+          <p style={styles.eyebrow}>OPEYEA</p>
+          <h1 style={styles.title}>Admin Dashboard</h1>
+          <p style={styles.subtitle}>
+            Manage parent consent and school registration records
+          </p>
+        </div>
 
-        <h1 style={styles.title}>OPEYEA Admin</h1>
-
-        <p style={styles.subtitle}>
-          Secure administrator login
-        </p>
-
-        <form onSubmit={handleLogin}>
-          <label style={styles.label}>Email Address</label>
-
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="Enter your admin email"
-            required
-            style={styles.input}
-          />
-
-          <label style={styles.label}>Password</label>
-
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="Enter your password"
-            required
-            style={styles.input}
-          />
-
-          {error && (
-            <p style={styles.error}>
-              {error}
-            </p>
-          )}
-
-          {message && (
-            <p style={styles.success}>
-              {message}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={styles.button}
-          >
-            {loading ? "Signing in..." : "Sign In"}
-          </button>
-        </form>
-
-        <button
-          type="button"
-          onClick={handleForgotPassword}
-          disabled={resetLoading}
-          style={styles.forgot}
-        >
-          {resetLoading
-            ? "Sending recovery email..."
-            : "Forgot Password?"}
+        <button onClick={handleLogout} style={styles.logout}>
+          Log Out
         </button>
+      </header>
 
-        <p style={styles.footer}>
-          OPEYEA • English Clinic
-        </p>
+      <section style={styles.account}>
+        <strong>Administrator</strong>
+        <span>{userEmail}</span>
       </section>
+
+      {/* Parent Consent Records */}
+      <section style={styles.card}>
+        <div style={styles.cardHeader}>
+          <div>
+            <h2 style={styles.cardTitle}>Parent Consent Records</h2>
+            <p style={styles.cardSubtitle}>
+              Total submissions: <strong>{consents.length}</strong>
+            </p>
+          </div>
+
+          <button onClick={loadDashboard} style={styles.refresh}>
+            Refresh
+          </button>
+        </div>
+
+        {loading && (
+          <p style={styles.message}>Loading records...</p>
+        )}
+
+        {!loading && !error && consents.length === 0 && (
+          <p style={styles.message}>
+            No parent consent records have been submitted yet.
+          </p>
+        )}
+
+        {!loading && !error && consents.length > 0 && (
+          <div style={styles.tableWrap}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Student</th>
+                  <th style={styles.th}>Class</th>
+                  <th style={styles.th}>School</th>
+                  <th style={styles.th}>Parent/Guardian</th>
+                  <th style={styles.th}>Phone</th>
+                  <th style={styles.th}>Date</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {consents.map((consent) => (
+                  <tr key={consent.id}>
+                    <td style={styles.td}>{consent.student_name}</td>
+                    <td style={styles.td}>{consent.student_class}</td>
+                    <td style={styles.td}>{consent.school}</td>
+                    <td style={styles.td}>
+                      {consent.parent_guardian_name}
+                    </td>
+                    <td style={styles.td}>
+                      {consent.parent_guardian_phone}
+                    </td>
+                    <td style={styles.td}>
+                      {new Date(consent.created_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* School Registration Records */}
+      <section style={styles.card}>
+        <div style={styles.cardHeader}>
+          <div>
+            <h2 style={styles.cardTitle}>School Registrations</h2>
+            <p style={styles.cardSubtitle}>
+              Total registrations: <strong>{schools.length}</strong>
+            </p>
+          </div>
+        </div>
+
+        {!loading && !error && schools.length === 0 && (
+          <p style={styles.message}>
+            No school registrations have been submitted yet.
+          </p>
+        )}
+
+        {!loading && !error && schools.length > 0 && (
+          <div style={styles.tableWrap}>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>School</th>
+                  <th style={styles.th}>Address</th>
+                  <th style={styles.th}>Principal / Head</th>
+                  <th style={styles.th}>Contact Person</th>
+                  <th style={styles.th}>Phone</th>
+                  <th style={styles.th}>Email</th>
+                  <th style={styles.th}>Classes</th>
+                  <th style={styles.th}>Students</th>
+                  <th style={styles.th}>Date</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {schools.map((school) => (
+                  <tr key={school.id}>
+                    <td style={styles.td}>{school.school_name}</td>
+                    <td style={styles.td}>{school.school_address}</td>
+                    <td style={styles.td}>{school.principal_name}</td>
+                    <td style={styles.td}>{school.contact_person}</td>
+                    <td style={styles.td}>{school.phone}</td>
+                    <td style={styles.td}>
+                      {school.email || "Not provided"}
+                    </td>
+                    <td style={styles.td}>
+                      {school.classes_interested}
+                    </td>
+                    <td style={styles.td}>
+                      {school.student_count || "Not provided"}
+                    </td>
+                    <td style={styles.td}>
+                      {new Date(school.created_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {error && (
+        <p style={styles.error}>
+          {error}
+        </p>
+      )}
     </main>
   );
 }
@@ -148,114 +223,136 @@ export default function AdminPage() {
 const styles = {
   page: {
     minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: "24px",
     background: "#f4f7fb",
+    padding: "30px 20px",
     fontFamily: "Arial, sans-serif",
+    color: "#243b53",
   },
 
-  card: {
-    width: "100%",
-    maxWidth: "420px",
-    background: "#ffffff",
-    padding: "36px 28px",
-    borderRadius: "20px",
-    boxShadow: "0 15px 45px rgba(0,0,0,0.10)",
-  },
-
-  logo: {
-    width: "58px",
-    height: "58px",
-    borderRadius: "50%",
-    background: "#0b5ed7",
-    color: "#ffffff",
+  header: {
+    maxWidth: "1200px",
+    margin: "0 auto 20px",
     display: "flex",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "center",
-    fontSize: "28px",
+    gap: "20px",
+  },
+
+  eyebrow: {
+    margin: "0 0 6px",
+    color: "#0b5ed7",
     fontWeight: "800",
-    margin: "0 auto 18px",
+    letterSpacing: "1px",
+    fontSize: "13px",
   },
 
   title: {
-    textAlign: "center",
     margin: "0",
-    fontSize: "28px",
+    fontSize: "32px",
     color: "#102a43",
   },
 
   subtitle: {
+    margin: "6px 0 0",
+    color: "#627d98",
+  },
+
+  logout: {
+    border: "none",
+    background: "#102a43",
+    color: "#fff",
+    padding: "12px 18px",
+    borderRadius: "10px",
+    fontWeight: "700",
+    cursor: "pointer",
+  },
+
+  account: {
+    maxWidth: "1200px",
+    margin: "0 auto 20px",
+    background: "#fff",
+    padding: "15px 18px",
+    borderRadius: "12px",
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+    boxShadow: "0 5px 20px rgba(0,0,0,0.05)",
+  },
+
+  card: {
+    maxWidth: "1200px",
+    margin: "0 auto 25px",
+    background: "#fff",
+    borderRadius: "16px",
+    padding: "22px",
+    boxShadow: "0 10px 35px rgba(0,0,0,0.07)",
+  },
+
+  cardHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "15px",
+    marginBottom: "20px",
+  },
+
+  cardTitle: {
+    margin: "0",
+    fontSize: "22px",
+    color: "#102a43",
+  },
+
+  cardSubtitle: {
+    margin: "6px 0 0",
+    color: "#627d98",
+  },
+
+  refresh: {
+    border: "1px solid #bcccdc",
+    background: "#fff",
+    color: "#102a43",
+    padding: "10px 15px",
+    borderRadius: "9px",
+    fontWeight: "700",
+    cursor: "pointer",
+  },
+
+  tableWrap: {
+    overflowX: "auto",
+  },
+
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+    minWidth: "1100px",
+  },
+
+  th: {
+    textAlign: "left",
+    padding: "13px 12px",
+    background: "#f0f4f8",
+    borderBottom: "1px solid #d9e2ec",
+    fontSize: "14px",
+  },
+
+  td: {
+    padding: "13px 12px",
+    borderBottom: "1px solid #e6edf3",
+    fontSize: "14px",
+  },
+
+  message: {
+    padding: "25px 10px",
     textAlign: "center",
     color: "#627d98",
-    marginBottom: "28px",
-  },
-
-  label: {
-    display: "block",
-    fontWeight: "600",
-    color: "#243b53",
-    marginBottom: "8px",
-    marginTop: "16px",
-  },
-
-  input: {
-    width: "100%",
-    boxSizing: "border-box",
-    padding: "13px 14px",
-    border: "1px solid #bcccdc",
-    borderRadius: "10px",
-    fontSize: "16px",
-    outline: "none",
-  },
-
-  button: {
-    width: "100%",
-    marginTop: "24px",
-    padding: "14px",
-    border: "none",
-    borderRadius: "10px",
-    background: "#0b5ed7",
-    color: "#ffffff",
-    fontSize: "16px",
-    fontWeight: "700",
-    cursor: "pointer",
-  },
-
-  forgot: {
-    display: "block",
-    width: "100%",
-    marginTop: "15px",
-    padding: "10px",
-    border: "none",
-    background: "transparent",
-    color: "#0b5ed7",
-    fontSize: "14px",
-    fontWeight: "700",
-    cursor: "pointer",
   },
 
   error: {
-    color: "#c92a2a",
+    maxWidth: "1200px",
+    margin: "0 auto 20px",
     background: "#fff5f5",
-    padding: "10px",
-    borderRadius: "8px",
-    fontSize: "14px",
-  },
-
-  success: {
-    color: "#237804",
-    background: "#f0fff4",
-    padding: "10px",
-    borderRadius: "8px",
-    fontSize: "14px",
-  },
-
-  footer: {
-    textAlign: "center",
-    marginTop: "25px",
-    color: "#829ab1",
-    fontSize: "13px",
+    color: "#c92a2a",
+    padding: "14px",
+    borderRadius: "10px",
   },
 };
